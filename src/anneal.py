@@ -59,7 +59,7 @@ def gibbscond(pis, phis, psis, rows, cols, Temp, X, i):
   X[~i] étant donné le modèle."""
   dU = pis[:] + phis[i, :]
   for j in range(rows[i], rows[i+1]):
-    dU += psis[:, X[cols[j]]]
+    dU += psis[:, X[cols[j]]] / 2
       
   p = np.exp(-dU / Temp) + 1e-20
   return p / p.sum()
@@ -99,8 +99,9 @@ tac = time.time()
 
 ## * Affichage
 print(f'Temps: {tac - tic}')
-print(f'U ML  = {Us[0]:10.2f}\t#err = {np.sum(T.ravel() != Xml)}')
-print(f'U MAP = {Umap:10.2f}\t#err = {np.sum(T.ravel() != Xmap)}')
+print(f'U Truth = {energy(pis, phis, psis, rows, cols, T.ravel()):10.2f}')
+print(f'U ML    = {Us[0]:10.2f}\t#err = {np.sum(T.ravel() != Xml)}')
+print(f'U MAP   = {Umap:10.2f}\t#err = {np.sum(T.ravel() != Xmap)}')
 
 plt.close('all')
 plt.figure(1)

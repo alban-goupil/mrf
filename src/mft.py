@@ -65,7 +65,7 @@ for k in range(niter):
 
   # Amélioration de l'estimation
   oldbeliefs = beliefs.copy()
-  bjs = oldbeliefs @ psis
+  bjs = oldbeliefs @ psis / 2
   U = pis + phis
   for i in range(nobs):
     for j in range(rows[i], rows[i+1]):
@@ -88,8 +88,9 @@ tac = time.time()
 
 ## * Affichage
 print(f'Temps: {tac - tic}')
-print(f'U ML  = {Us[0]:10.2f}\t#err = {np.sum(T.ravel() != Xml)}')
-print(f'U MAP = {Umap:10.2f}\t#err = {np.sum(T.ravel() != Xmap)}')
+print(f'U Truth = {energy(pis, phis, psis, rows, cols, T.ravel()):10.2f}')
+print(f'U ML    = {Us[0]:10.2f}\t#err = {np.sum(T.ravel() != Xml)}')
+print(f'U MAP   = {Umap:10.2f}\t#err = {np.sum(T.ravel() != Xmap)}')
 
 plt.close('all')
 plt.figure(1)

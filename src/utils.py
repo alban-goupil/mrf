@@ -64,5 +64,5 @@ def energy(pis, phis, psis, rows, cols, X):
   for i, xi in enumerate(X):
     U += pis[xi] + phis[i, xi]
     for j in range(rows[i], rows[i+1]):
-      U += psis[xi, X[cols[j]]]
+      U += psis[xi, X[cols[j]]] / 2
   return U
