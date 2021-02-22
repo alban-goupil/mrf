@@ -1,0 +1,430 @@
+% -*- coding: utf-8 -*-
+\documentclass[a4paper,11pt,oneside]{article}
+
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\usepackage[margin=20mm]{geometry}
+\usepackage{parskip}
+\usepackage{hyperref}
+
+\usepackage{amsmath}
+\usepackage[ruled,vlined,french]{algorithm2e}
+
+\setdefaultlanguage{french}
+\setotherlanguage{english}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\begin{document}
+
+\centerline{\sffamily\bfseries\LARGE Champ aléatoire de Markov}
+\bigskip
+
+\section{Introduction}
+\label{sec:introduction}
+
+Les champs aléatoire de Markov, \textenglish{Markov Random
+  Field} en anglais, offrent une modélisation intéressante
+pour le traitement d'image et notamment pour étiqueter les
+pixels à partir des pixels voisins et des observations pour
+chaque pixel comme la couleur ou un niveau de gris. Les
+champs considérés ne prennent en compte que des cliques de
+taille 1 et 2, c'est-à-dire les sommets et les arêtes. Les
+sommets sont les pixels, les arêtes sont les relations de
+voisinage. Dans le cas d'une image rectangulaire non
+pré-segmentée par des super-pixels, le voisinage est celui
+de Von Neumann.
+
+
+
+
+\section{Le modèle markovien considéré}
+\label{sec:modele}
+
+L'image est constituée de $n$ pixels $\mathcal V$;
+l'étiquette associée au pixel $v$ est notée $x_v$, et
+l'observation de ce pixel, comme sa couleur ou un spectre
+est notée $y_v$. Chaque étiquette appartient à l'ensemble
+fini $\mathcal K$ de cardinal $|\mathcal K|$. Pour
+simplifier, on note $x$ les $n$ valeurs $\{x_v, v\in\mathcal
+V\}$ et de même pour $y$. On note $\mathcal X=\mathcal K^n$
+l'ensemble des étiquettes possibles. La structure du
+voisinage est donnée par l'ensemble $\mathcal
+E\subset\mathcal V^2$ des paires $(u, v)$ pour lesquelles
+les pixels $u$ et $v$ sont voisins.
+
+
+
+\subsection{Description}
+\label{sec:description}
+
+Le modèle par champ de Markov définit la probabilité $p(x
+\mid y) = p(x_1,\ldots,x_n \mid y_1,\ldots,y_n)$ à partir de
+laquelle les autres probabilités sont déterminées par
+marginalisation et conditionnement. Cette probabilité
+s'écrit sous la forme d'une distribution de Boltzmann,
+\begin{equation}
+  \label{eq:1}
+  p(x|y) = \frac1Z e^{%
+    - \sum_{v\in\mathcal V} \pi[x_v]%
+    - \sum_{v\in\mathcal V} \phi_v[x_v]
+    - \sum_{(u,v)\in\mathcal E} \psi[x_u, x_v]},
+\end{equation}
+avec $Z$ la fonction de partition qui normalise la
+probabilité et où les crochets sont utilisés pour insister
+sur le caractère discret de $\pi$, $\phi_v$ et $\psi$ qui
+sont des tableaux indexés par les classes. Nous utilisons
+ici la notation $\phi$ pour l'ensemble des fonctions
+$\phi_v$.
+
+Ainsi le modèle du champ markovien pour $y$ observé est
+défini par trois paramètres $\pi$, $\phi$, et $\psi$ qui
+sont représentables par des tableaux de taille $|\mathcal
+K|$, $n\times|\mathcal K|$ et $|\mathcal K|\times|\mathcal
+K|$ respectivement.
+
+Comme la relation de voisinage est non dirigée, la matrice
+$\psi$ peut être considérée comme symétrique et, en notant
+$\mathcal N_u$ les pixels voisins de $u$,
+\begin{equation}
+  \label{eq:2}
+  \sum_{(u,v)\in\mathcal E} \psi[x_u, x_v]
+  = \frac12\:
+      \sum_{v\in\mathcal V}\:
+        \sum_{u\in\mathcal N_v} \psi[x_u, x_v],
+\end{equation}
+avec la division par deux pour prendre en compte le double
+comptage de chaque arête.
+
+Dans l'équation précédente, nous remarquons que $y$
+n'apparaît pas explicitement; en effet, $y$ est
+l'observation qui est donc fixée à chaque instanciation du
+modèle. Mais les valeurs $y_v$ interviennent de façon
+latente dans $\phi_v$ et ne seront révélés que lors de
+l'apprentissage des paramètres du modèle.
+
+Le caractère boltzmannien de~(\ref{eq:1}) se voit en posant
+l'énergie
+\begin{equation}
+  \label{eq:3}
+  E[x] =
+  \sum_{v\in\mathcal V} \pi[x_v]
+  + \sum_{v\in\mathcal V} \phi_v[x_v]
+  + \sum_{(u,v)\in\mathcal E} \psi[x_u, x_v],
+\end{equation}
+qui permet d'exprimer, en introduisant la température $T$,
+\begin{equation}
+  \label{eq:4}
+  p_T(x\mid y) = \frac1{Z(T)} e^{-E[x]/T}
+  \quad
+  \text{avec}\quad Z(T) = \sum_{x\in\mathcal X} e^{-E[x]/T}.
+\end{equation}
+
+L'équation~(\ref{eq:1}) suppose $T=1$ mais introduire ici la
+température permet de paramétriser simplement la loi
+$p(x\mid y)$ pour en faire ressortir les caractéristiques
+intéressantes. Par exemple plus $T$ est grand plus la
+probabilité tend vers une loi uniforme alors que plus $T$
+s'approche de $0$, plus la densité se concentre sur les
+états $x$ d'énergie $E[x]$ petit. Ainsi si on arrive
+à échantillonner la probabilité en faisant tendre $T$ vers
+$0$ alors on va trouver les états d'énergie minimum ou
+encore de probabilité maximum. Cette idée est à la base du
+recuit simulé.
+
+
+
+\subsection{Interprétation des paramètres}
+\label{sec:interpretation}
+
+L'énergie~(\ref{eq:3}) dépend de trois paramètres $\pi$,
+$\phi$ et $\psi$ qu'il reste à interpréter.
+
+Le paramètre $\pi[c]$ mesure l'\emph{a priori} sur
+l'étiquette $c$ sans rien supposé autour. Plus $\pi[c]$ est
+faible, plus l'étiquette $c$ est probable avant même la
+considération d'une observation.
+
+La valeur $\phi_v[c]$ mesure la vraisemblance de l'étiquette
+$c$ pour le pixel $v$ étant connue l'observation $y_v$ à cet
+endroit. C'est ce paramètre qui relie les étiquettes à la
+réalité observée. Plus la valeur est faible, plus
+l'étiquette $c$ est vraisemblable.
+
+Enfin $\psi[c, c']$ est au cœur des champs de Markov car sa
+valeur mesure à quel point deux pixels voisins ont les
+étiquettes $c$ et $c'$. Si le paramètre $\psi$ est constant
+pour tous les couples alors le champ de Markov devient
+équivalent à une loi produit de variables indépendantes!
+
+
+
+
+\section{Maximum \emph{a posteriori}}
+\label{sec:maximum-posteriori}
+
+Une fois la loi de probabilité~(\ref{eq:1}) fixée, il reste
+à connaître les étiquettes $x$ à partir des observations
+$y$. Il est naturel dans une méthode bayésienne de chercher
+la valeur des étiquettes qui maximise la probabilité \emph{a
+  posteriori} ou, de façon équivalente qui minimise
+l'énergie,
+\begin{equation}
+  \label{eq:5}
+  x^* = \argmax_x p(x\mid y) = \argmin_x E[x].
+\end{equation}
+
+Remarquons que la version énergétique évite avec plaisir
+l'évaluation de la fonction de partition $Z$ qui se révèle
+souvent trop difficile à calculer. Mais malheureusement,
+l'optimisation reste difficile car le nombre d'étiquetages
+possibles est considérable, ici exponentiel en le nombre de
+pixels.
+
+Plusieurs méthodes sont envisageables, notamment le recuit
+simulé, le champ moyen ou la propagation de croyances qui
+sont l'objet des sections suivantes.
+
+
+
+\subsection{Recuit simulé}
+\label{sec:recuit-simule}
+
+La méthode du recuit simulé, ou simulated annealing en
+anglais, utilise la maximisation de la densité \emph{a
+  posteriori}. Pour cela, une chaîne de Markov est
+construite pour échantillonner la densité $p_T(x\mid y)$
+donnée par~(\ref{eq:4}). Lors de la construction de la
+trajectoire, la température diminue petit à petit. Une
+température initiale élevée permet de visiter rapidement les
+états intéressants et lors du refroidissement, la chaîne se
+concentre de plus en plus souvent sur des états de plus
+faible énergie.
+
+L'algorithme~\ref{alg:1} décrit la procédure de création
+d'une trajectoire selon $p_T(x\mid y)$ avec la température
+$T$ qui diminue tout en sauvegardant la meilleure solution
+trouvée jusqu'alors qui sera une estimation du maximum de
+vraisemblance.
+
+\begin{algorithm}
+  $x\longleftarrow$ valeur aléatoire\;
+  $x_\text{best} \longleftarrow x$\;
+  \For{température $T$ décroissante}{
+    $x\longleftarrow$ voisin probable de $x$
+    selon $p_T(x\mid y)$
+    \tcp*{Suivant la chaîne de Markov}
+    \If{$p_T(x\mid y) > p_T(x_\text{best}\mid y)$}{
+      $x_\text{best} \longleftarrow x$\;
+    }
+  }
+  \Return $x_\text{best}$\;
+  \caption{Recuit simulé}
+  \label{alg:1}
+\end{algorithm}
+
+Pour être utilisable, il faut pouvoir créer une chaîne de
+Markov de loi stationnaire $p(x\mid y)$. L'échantillonnage
+de Gibbs de l'algorithme~\ref{alg:2} permet d'en construire
+un simplement lorsque les probabilités $p(x_v\mid
+x_{\backslash v},y)$ sont facilement calculables où
+$x_{\backslash v}$ est l'ensemble des étiquettes de tous les
+pixels sauf $v$.
+
+\begin{algorithm}
+  \ForEach{$v\in\mathcal V$}{
+    Calculer $p_T(x_v=c\mid x_{\backslash v},y)$ pour tout
+    $c\in\mathcal K$ selon~(\ref{eq:6})\;
+    
+    Choisir $x_v$ aléatoirement selon la loi
+    $p_T(x_v=c \mid p_T(x_v\mid x_{\backslash v},y)$\;}
+  \caption{Échantillonnage de Gibbs}
+  \label{alg:2}
+\end{algorithm}
+
+Le calcul de $p_T(x_v=c\mid x_{\backslash v},y)$ est simple
+dans le cas des champs de Markov avec l'énergie~(\ref{eq:3})
+car
+\begin{equation}
+  \label{eq:6}
+  p_T(x_v=c\mid x_{\backslash v},y)
+  \propto
+  \exp\left(-\frac{\Delta U_v[c]}T\right)
+  \quad\text{avec}\quad
+  \Delta U_v[c] = \pi[c] + \phi_v[c]
+              + \sum_{u\in\mathcal N_v} \psi[c, u],
+\end{equation}
+et la constante de proportionnalité se retrouve par
+normalisation de $p_T(x_v\mid x_{\backslash v},y)$.
+
+
+
+\subsection{Champ moyen}
+\label{sec:champ-moyen}
+
+La méthode du champ moyen, \textenglish{mean-field} en
+anglais, est vraiment différente car il s'agît de trouver
+une loi de probabilité qui soit proche de la probabilité
+\emph{a posteriori} mais sous une forme plus simple
+que~(\ref{eq:1}). Le champ moyen utilise une densité $b[x]$
+complètement factorisée
+\begin{equation}
+  \label{eq:7}
+  b[x] = \prod_{v\in\mathcal V} b_v[x_v],
+\end{equation}
+qui devra s'approcher au maximum de $p(x\mid y)$ avec les
+observations $y$ fixées. La densité $b$ peut se représenter
+comme un tableau de taille $|\mathcal V|\times|\mathcal K|$.
+
+Une fois cette densité $b$ obtenue, il devient
+particulièrement simple d'estimer le maximum \emph{a
+  posteriori} par une optimisation pixel par pixel,
+\begin{equation}
+  \label{eq:8}
+  x_\text{mft}[v] = \argmax_{c\in\mathcal K} b_v[c].
+\end{equation}
+Si $b$ est proche de $p(\cdot\mid y)$ alors on peut espérer
+que $x_\text{mft}$ soit proche de $x^*$ de~(\ref{eq:5}).
+
+L'inférence bayésienne variationnelle propose d'utiliser
+l'énergie libre $F$ pour trouver la densité $b$ proche de
+$p$~\cite{GB20}: $b$ est obtenu en minimisant cette énergie
+libre qui s'écrit sous les deux formes
+\begin{equation}
+  \label{eq:9}
+  F(b{\mathop\Vert}p)
+  = \left\langle\ln\frac{b[x]}{p(x\mid y)}\right\rangle_b
+  = \bigl\langle-\ln p(x\mid y)\bigr\rangle_b - H(b),
+\end{equation}
+où $H(b)$ est l'entropie de la loi $b$ et
+$\langle\cdot\rangle_b$ l'espérance par rapport à la loi
+$b$. Par ailleurs, avec cette minimisation, la loi $p$ peut
+ne pas être normalisée sans en modifier la densité optimale.
+De plus, si $b$ n'est pas contrainte, alors cette
+distribution optimale est $p(x\mid y).$
+
+Dans le cadre du champ moyen, en utilisant la formulation de
+Boltzmann de $p$~(\ref{eq:4}) avec $T=1$ en dédaignant la
+normalisation par $Z$, l'énergie libre s'écrit $\bigl\langle
+E[x]\bigr\rangle_b - H(b)$. Par conséquent, le champ moyen
+cherche la solution de
+\begin{equation}
+  \label{eq:10}
+  \argmin_b\ \bigl\langle E[x]\bigr\rangle_b - H(b)
+  \qquad\text{avec}\qquad
+  b[x] = \prod_{v\in\mathcal V} b_v[x_v].
+\end{equation}
+
+L'indépendance forcée dans l'expression de $b$ simplifie le
+problème d'optimisation~(\ref{eq:10}). En effet, l'entropie
+de $b$ s'écrit comme la somme des entropies des densités
+marginales
+\begin{equation}
+  \label{eq:11}
+  H(b) = \sum_{v\in\mathcal V} H\bigl(b_v\bigr)
+  = \sum_{v\in\mathcal V} \sum_{c\in\mathcal K}
+    b_v[c]\:\ln b_v[c].
+\end{equation}
+De plus la linéarité de l'espérance simplifie l'énergie
+moyenne qui devient, en utilisant le modèle~(\ref{eq:3})
+\begin{align}
+  \label{eq:12}
+  \bigl\langle E[x]\bigr\rangle_b &=
+  \sum_{v\in\mathcal V}
+  \bigl\langle\pi\bigr\rangle_{b_v} +
+  \sum_{v\in\mathcal V}
+  \bigl\langle\phi_v\bigr\rangle_{b_v} +
+  \frac12\:\sum_{v\in\mathcal V}
+  \left\langle\sum_{u\in\mathcal N_v}
+    \bigl\langle\psi[c,\cdot]\bigr\rangle_{b_u}
+  \right\rangle_{b_v[c]}\\
+  \label{eq:13}  
+  &=\sum_{v\in\mathcal V} \sum_{c\in\mathcal K} \pi[c]\:b_v[c]
+  + \sum_{v\in\mathcal V} \sum_{c\in\mathcal K} \phi_v[c]\:b_v[c]
+  +\frac12\:\sum_{v\in\mathcal V} \sum_{c\in\mathcal K}
+    \sum_{u\in\mathcal N_v} \sum_{c'\in\mathcal K}
+    \psi[c,c']\:b_u[c']\:b_v[c].
+\end{align}
+
+Avec les expressions~(\ref{eq:11}) et (\ref{eq:12}),
+l'optimisation de~(\ref{eq:10}) devient plus simple, car il
+suffit d'égaler la dérivée de~(\ref{eq:10}) par rapport
+à $b_v[c]$ et celle de~(\ref{eq:11}) à une constante près
+pour la multiplicateur de Lagrange pour obtenir la relation
+\begin{equation}
+  \label{eq:14}
+  -\ln b_v[c]
+  = \pi[c] + \phi_v[c] + \frac12\: \sum_{u\in\mathcal N_v}
+    \sum_{c'\in\mathcal K} \psi[c, c'] b_u[c']
+  + \text{constante}.
+\end{equation}
+On remarque que l'ensemble des $b_v$ pour $v\in\mathcal V$
+vérifie une loi de Boltzmann avec les étiquettes remplacées
+par les probabilités $b_v$ elles-mêmes. La constante est
+simple à calculer car sert à la normalisation de $b_v$ pour
+en faire une loi de probabilité. Remarquons de plus que la
+somme sur $c'$ dans~(\ref{eq:14}) équivaut à une
+multiplication matricielle.
+
+Résoudre~(\ref{eq:14}) peut se faire par une recherche de
+point fixe grâce à des itérations successives comme indiquer
+dans l'algorithme~\ref{alg:3}.
+
+\begin{algorithm}
+  \Repeat{$b_v' \approx b_v$}{
+    \tcp{Copie de $b$ dans $b'$}
+    \ForEach{$v\in\mathcal V$}{
+      $b_v'[\cdot] \longleftarrow b_v[\cdot]$\;}
+    
+    \tcp{Mise à jour de $b$ selon~(\ref{eq:14})}
+    \ForEach{$v\in\mathcal V$}{
+      $b_v[\cdot] \longleftarrow
+      \exp\Bigl(-\pi[\cdot]-\phi_v[\cdot]
+      -\frac12\:
+      \sum_{c'\in\mathcal K} \psi[\cdot, c']\:b'_u[c']
+      \Bigr)$\;}
+         
+    \tcp{Normalisation de $b_v$}
+    \ForEach{$v\in\mathcal V$}{
+      $K \longleftarrow \sum_{c\in\mathcal K} b_v[c]$\;
+      $b_v[\cdot] \longleftarrow b_v[\cdot] / K$\;}
+  }
+  \caption{Calcul du champ moyen par point fixe.}
+  \label{alg:3}
+\end{algorithm}
+
+
+
+\subsection{Propagation de croyances}
+\label{sec:bp}
+
+La dernière méthode repose sur un algorithme d'échange de
+messages appelé propagation de croyances, ou
+\textenglish{belief propagation} en anglais. Le point de
+départ est identique à la méthode du champ moyen mais la
+densité $b$ ne se factorise pas complètement sur les sommets
+mais plutôt sur les arrêtes
+\begin{equation}
+  \label{eq:15}
+  b[x] = \prod_{(u,v)\in\mathcal E} b_{(u,v)}[x_u, x_v].
+\end{equation}
+
+L'optimisation de l'énergie libre~(\ref{eq:9}) devient un
+peu plus complexe non à cause de la partie énergétique mais
+de la partie entropique: $H(b)$ ne s'exprime plus comme une
+somme d'entropie facilement calculable. De plus, des
+multiplicateurs de Lagrange doivent être ajoutés pour
+satisfaire les contraintes de marginalisation et de
+normalisation.
+
+% \bibliographystyle{alpha}
+% \bibliography{articles}
+\begin{thebibliography}{GB}
+\bibitem[GB20]{GB20} Sebastian Gottwald and Daniel~A. Braun.
+  \newblock The two kinds of free energy and the bayesian
+  revolution. 2020
+\end{thebibliography}
+
+
+\end{document}
