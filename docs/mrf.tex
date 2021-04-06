@@ -1,12 +1,10 @@
-% -*- coding: utf-8 -*-
+ % -*- coding: utf-8 -*-
 \documentclass[a4paper,11pt,oneside]{article}
 
 \usepackage{fontspec}
 \usepackage{polyglossia}
 \usepackage[margin=20mm]{geometry}
 \usepackage{parskip}
-\usepackage{hyperref}
-
 \usepackage{amsmath}
 \usepackage[ruled,vlined,french]{algorithm2e}
 
@@ -15,30 +13,37 @@
 
 \DeclareMathOperator*{\argmax}{arg\,max}
 \DeclareMathOperator*{\argmin}{arg\,min}
+\let\<\langle
+\let\>\rangle
 
 \begin{document}
 
 \centerline{\sffamily\bfseries\LARGE Champ aléatoire de Markov}
 \bigskip
 
+
+
+% * introduction
 \section{Introduction}
 \label{sec:introduction}
 
-Les champs aléatoire de Markov, \textenglish{Markov Random
+Les champs aléatoires de Markov, \textenglish{Markov Random
   Field} en anglais, offrent une modélisation intéressante
 pour le traitement d'image et notamment pour étiqueter les
-pixels à partir des pixels voisins et des observations pour
-chaque pixel comme la couleur ou un niveau de gris. Les
-champs considérés ne prennent en compte que des cliques de
-taille 1 et 2, c'est-à-dire les sommets et les arêtes. Les
-sommets sont les pixels, les arêtes sont les relations de
-voisinage. Dans le cas d'une image rectangulaire non
-pré-segmentée par des super-pixels, le voisinage est celui
-de Von Neumann.
+pixels en fonction de leur observation, comme leur couleur
+ou leur niveau de gris, et des étiquettes de leurs pixels
+voisins. Les champs considérés ne prennent en compte que des
+cliques de taille 1 et 2, c'est-à-dire les sommets et les
+arêtes. Les sommets sont les pixels, les arêtes sont les
+relations de voisinage. Dans le cas d'une image
+rectangulaire non pré-segmentée par des super-pixels, le
+voisinage est celui de Von~Neumann, c'est-à-dire les pixels
+correspondants d'une ligne au dessus, une ligne en dessous,
+une colonne à droite et une colonne à gauche.
 
 
 
-
+% * Le modèle markovien considéré
 \section{Le modèle markovien considéré}
 \label{sec:modele}
 
@@ -47,15 +52,17 @@ l'étiquette associée au pixel $v$ est notée $x_v$, et
 l'observation de ce pixel, comme sa couleur ou un spectre
 est notée $y_v$. Chaque étiquette appartient à l'ensemble
 fini $\mathcal K$ de cardinal $|\mathcal K|$. Pour
-simplifier, on note $x$ les $n$ valeurs $\{x_v, v\in\mathcal
-V\}$ et de même pour $y$. On note $\mathcal X=\mathcal K^n$
-l'ensemble des étiquettes possibles. La structure du
-voisinage est donnée par l'ensemble $\mathcal
-E\subset\mathcal V^2$ des paires $(u, v)$ pour lesquelles
-les pixels $u$ et $v$ sont voisins.
+simplifier, $x$ dénote les $n$ valeurs $\{x_v, v\in\mathcal
+V\}$ et de même pour $y$. Tous les étiquetages possibles
+forment l'ensemble $\mathcal X=\mathcal K^n$. La structure
+du voisinage est donnée par l'ensemble $\mathcal
+E\subset\mathcal V^2$ des paires non ordonnées $\{u, v\}$
+pour lesquelles les pixels $u$ et $v$ sont voisins. Ainsi la
+paire $\{u, v\}$ est identique à la paire $\{v, u\}$.
 
 
 
+% ** Description
 \subsection{Description}
 \label{sec:description}
 
@@ -101,7 +108,7 @@ Dans l'équation précédente, nous remarquons que $y$
 n'apparaît pas explicitement; en effet, $y$ est
 l'observation qui est donc fixée à chaque instanciation du
 modèle. Mais les valeurs $y_v$ interviennent de façon
-latente dans $\phi_v$ et ne seront révélés que lors de
+latente dans $\phi_v$ et ne seront révélées que lors de
 l'apprentissage des paramètres du modèle.
 
 Le caractère boltzmannien de~(\ref{eq:1}) se voit en posant
@@ -113,7 +120,8 @@ l'énergie
   + \sum_{v\in\mathcal V} \phi_v[x_v]
   + \sum_{(u,v)\in\mathcal E} \psi[x_u, x_v],
 \end{equation}
-qui permet d'exprimer, en introduisant la température $T$,
+qui permet d'exprimer l'\emph{a posteriori}~(\ref{eq:1}), en
+introduisant la température $T$, par
 \begin{equation}
   \label{eq:4}
   p_T(x\mid y) = \frac1{Z(T)} e^{-E[x]/T}
@@ -122,9 +130,9 @@ qui permet d'exprimer, en introduisant la température $T$,
 \end{equation}
 
 L'équation~(\ref{eq:1}) suppose $T=1$ mais introduire ici la
-température permet de paramétriser simplement la loi
-$p(x\mid y)$ pour en faire ressortir les caractéristiques
-intéressantes. Par exemple plus $T$ est grand plus la
+température permet de paramétrer simplement la loi $p(x\mid
+y)$ pour en faire ressortir les caractéristiques
+intéressantes. Par exemple, plus $T$ est grand plus la
 probabilité tend vers une loi uniforme alors que plus $T$
 s'approche de $0$, plus la densité se concentre sur les
 états $x$ d'énergie $E[x]$ petit. Ainsi si on arrive
@@ -134,23 +142,25 @@ encore de probabilité maximum. Cette idée est à la base du
 recuit simulé.
 
 
-
+% ** Interprétation des paramètres
 \subsection{Interprétation des paramètres}
 \label{sec:interpretation}
 
 L'énergie~(\ref{eq:3}) dépend de trois paramètres $\pi$,
-$\phi$ et $\psi$ qu'il reste à interpréter.
+$\phi$ et $\psi$ qu'il reste à interpréter. Ces paramètres
+sont déterminés à une constante près. Ainsi les comparaisons
+se font relativement aux autres valeurs des paramètres.
 
 Le paramètre $\pi[c]$ mesure l'\emph{a priori} sur
-l'étiquette $c$ sans rien supposé autour. Plus $\pi[c]$ est
-faible, plus l'étiquette $c$ est probable avant même la
+l'étiquette $c$ sans rien supposer autour. Plus $\pi[c]$,
+plus l'étiquette $c$ est probable avant même la
 considération d'une observation.
 
 La valeur $\phi_v[c]$ mesure la vraisemblance de l'étiquette
-$c$ pour le pixel $v$ étant connue l'observation $y_v$ à cet
-endroit. C'est ce paramètre qui relie les étiquettes à la
-réalité observée. Plus la valeur est faible, plus
-l'étiquette $c$ est vraisemblable.
+$c$ pour le pixel $v$ étant connue l'observation $y_v$
+associée à ce pixel. C'est ce paramètre qui relie les
+étiquettes à la réalité observée. Plus la valeur est faible,
+plus l'étiquette $c$ est vraisemblable.
 
 Enfin $\psi[c, c']$ est au cœur des champs de Markov car sa
 valeur mesure à quel point deux pixels voisins ont les
@@ -160,7 +170,7 @@ pour tous les couples alors le champ de Markov devient
 
 
 
-
+% * Maximum \emph{a posteriori}
 \section{Maximum \emph{a posteriori}}
 \label{sec:maximum-posteriori}
 
@@ -175,19 +185,19 @@ l'énergie,
   x^* = \argmax_x p(x\mid y) = \argmin_x E[x].
 \end{equation}
 
-Remarquons que la version énergétique évite avec plaisir
+Remarquons que la version énergétique évite avec bonheur
 l'évaluation de la fonction de partition $Z$ qui se révèle
 souvent trop difficile à calculer. Mais malheureusement,
-l'optimisation reste difficile car le nombre d'étiquetages
-possibles est considérable, ici exponentiel en le nombre de
-pixels.
+l'optimisation reste difficile de par le nombre
+d'étiquetages possibles est considérable, ici exponentiel en
+le nombre de pixels.
 
 Plusieurs méthodes sont envisageables, notamment le recuit
 simulé, le champ moyen ou la propagation de croyances qui
 sont l'objet des sections suivantes.
 
 
-
+% ** Recuit simulé
 \subsection{Recuit simulé}
 \label{sec:recuit-simule}
 
@@ -227,10 +237,10 @@ vraisemblance.
 Pour être utilisable, il faut pouvoir créer une chaîne de
 Markov de loi stationnaire $p(x\mid y)$. L'échantillonnage
 de Gibbs de l'algorithme~\ref{alg:2} permet d'en construire
-un simplement lorsque les probabilités $p(x_v\mid
-x_{\backslash v},y)$ sont facilement calculables où
-$x_{\backslash v}$ est l'ensemble des étiquettes de tous les
-pixels sauf $v$.
+une simplement lorsque les probabilités conditionnelles
+$p(x_v\mid x_{\backslash v},y)$ sont facilement calculables
+où $x_{\backslash v}$ est l'ensemble des étiquettes de tous
+les pixels sauf $v$.
 
 \begin{algorithm}
   \ForEach{$v\in\mathcal V$}{
@@ -259,7 +269,7 @@ et la constante de proportionnalité se retrouve par
 normalisation de $p_T(x_v\mid x_{\backslash v},y)$.
 
 
-
+% ** Champ moyen
 \subsection{Champ moyen}
 \label{sec:champ-moyen}
 
@@ -282,36 +292,38 @@ particulièrement simple d'estimer le maximum \emph{a
   posteriori} par une optimisation pixel par pixel,
 \begin{equation}
   \label{eq:8}
-  x_\text{mft}[v] = \argmax_{c\in\mathcal K} b_v[c].
+  x_v^\text{mft} = \argmax_{c\in\mathcal K} b_v[c].
 \end{equation}
 Si $b$ est proche de $p(\cdot\mid y)$ alors on peut espérer
-que $x_\text{mft}$ soit proche de $x^*$ de~(\ref{eq:5}).
+que $x^\text{mft}$ soit proche de $x^*$ de~(\ref{eq:5}).
 
 L'inférence bayésienne variationnelle propose d'utiliser
 l'énergie libre $F$ pour trouver la densité $b$ proche de
-$p$~\cite{GB20}: $b$ est obtenu en minimisant cette énergie
-libre qui s'écrit sous les deux formes
+$p$~\cite{GB20}: cette densité $b$ est obtenue en minimisant
+cette énergie libre $F$ qui s'écrit sous les deux formes
 \begin{equation}
   \label{eq:9}
   F(b{\mathop\Vert}p)
-  = \left\langle\ln\frac{b[x]}{p(x\mid y)}\right\rangle_b
-  = \bigl\langle-\ln p(x\mid y)\bigr\rangle_b - H(b),
+  = \left\<\ln\frac{b[x]}{p(x\mid y)}\right\>_x
+  = \bigl\<-\ln p(x\mid y)\bigr\>_x - H(b),
 \end{equation}
-où $H(b)$ est l'entropie de la loi $b$ et
-$\langle\cdot\rangle_b$ l'espérance par rapport à la loi
-$b$. Par ailleurs, avec cette minimisation, la loi $p$ peut
-ne pas être normalisée sans en modifier la densité optimale.
-De plus, si $b$ n'est pas contrainte, alors cette
-distribution optimale est $p(x\mid y).$
+où $H(b)$ est l'entropie de la loi $b$ et $\<\cdot\>_x$
+l'espérance par rapport à $x$ selon la loi $b[x]$. Par
+ailleurs, avec cette méthode, la loi $p$ peut n'être
+accessible qu'à une constante multiplicative près sans par
+ailleurs modifier la densité optimale car alors l'énergie
+libre $F$ est augmentée d'une constante indifférente à la
+minimisation. De plus, si $b$ n'est pas contrainte, alors
+cette distribution optimale est $p(x\mid y).$
 
 Dans le cadre du champ moyen, en utilisant la formulation de
 Boltzmann de $p$~(\ref{eq:4}) avec $T=1$ en dédaignant la
-normalisation par $Z$, l'énergie libre s'écrit $\bigl\langle
-E[x]\bigr\rangle_b - H(b)$. Par conséquent, le champ moyen
+normalisation par $Z$, l'énergie libre s'écrit $\bigl\<
+E[x]\bigr\>_x - H(b)$. Par conséquent, le champ moyen
 cherche la solution de
 \begin{equation}
   \label{eq:10}
-  \argmin_b\ \bigl\langle E[x]\bigr\rangle_b - H(b)
+  \argmin_b\ \bigl\< E[x]\bigr\>_b - H(b)
   \qquad\text{avec}\qquad
   b[x] = \prod_{v\in\mathcal V} b_v[x_v].
 \end{equation}
@@ -323,22 +335,22 @@ marginales
 \begin{equation}
   \label{eq:11}
   H(b) = \sum_{v\in\mathcal V} H\bigl(b_v\bigr)
-  = \sum_{v\in\mathcal V} \sum_{c\in\mathcal K}
-    b_v[c]\:\ln b_v[c].
+  = -\sum_{v\in\mathcal V} \sum_{c\in\mathcal K}
+  b_v[c]\:\ln b_v[c].
 \end{equation}
 De plus la linéarité de l'espérance simplifie l'énergie
 moyenne qui devient, en utilisant le modèle~(\ref{eq:3})
 \begin{align}
   \label{eq:12}
-  \bigl\langle E[x]\bigr\rangle_b &=
+  \bigl\<E[x]\bigr\>_x &=
   \sum_{v\in\mathcal V}
-  \bigl\langle\pi\bigr\rangle_{b_v} +
+  \bigl\<\pi[x_v]\bigr\>_{x_v} +
   \sum_{v\in\mathcal V}
-  \bigl\langle\phi_v\bigr\rangle_{b_v} +
+  \bigl\<\phi_v[x_v]\bigr\>_{x_v} +
   \frac12\:\sum_{v\in\mathcal V}
-  \left\langle\sum_{u\in\mathcal N_v}
-    \bigl\langle\psi[c,\cdot]\bigr\rangle_{b_u}
-  \right\rangle_{b_v[c]}\\
+  \left\<\sum_{u\in\mathcal N_v}
+    \bigl\<\psi[x_v,x_u]\bigr\>_{x_u}
+  \right\>_{x_v}\\
   \label{eq:13}  
   &=\sum_{v\in\mathcal V} \sum_{c\in\mathcal K} \pi[c]\:b_v[c]
   + \sum_{v\in\mathcal V} \sum_{c\in\mathcal K} \phi_v[c]\:b_v[c]
@@ -351,7 +363,7 @@ Avec les expressions~(\ref{eq:11}) et (\ref{eq:12}),
 l'optimisation de~(\ref{eq:10}) devient plus simple, car il
 suffit d'égaler la dérivée de~(\ref{eq:10}) par rapport
 à $b_v[c]$ et celle de~(\ref{eq:11}) à une constante près
-pour la multiplicateur de Lagrange pour obtenir la relation
+pour le multiplicateur de Lagrange pour obtenir la relation
 \begin{equation}
   \label{eq:14}
   -\ln b_v[c]
@@ -360,12 +372,13 @@ pour la multiplicateur de Lagrange pour obtenir la relation
   + \text{constante}.
 \end{equation}
 On remarque que l'ensemble des $b_v$ pour $v\in\mathcal V$
-vérifie une loi de Boltzmann avec les étiquettes remplacées
-par les probabilités $b_v$ elles-mêmes. La constante est
-simple à calculer car sert à la normalisation de $b_v$ pour
-en faire une loi de probabilité. Remarquons de plus que la
-somme sur $c'$ dans~(\ref{eq:14}) équivaut à une
-multiplication matricielle.
+vérifie une loi de Boltzmann avec les étiquettes des voisins
+remplacées par la moyenne utilisant les probabilités $b_v$
+elles-mêmes. La constante est simple à calculer car sert
+à la normalisation de $b_v$ pour en faire une loi de
+probabilité. Remarquons de plus que la somme sur $c'$
+dans~(\ref{eq:14}) équivaut à une multiplication
+matricielle.
 
 Résoudre~(\ref{eq:14}) peut se faire par une recherche de
 point fixe grâce à des itérations successives comme indiquer
@@ -395,7 +408,7 @@ dans l'algorithme~\ref{alg:3}.
 \end{algorithm}
 
 
-
+% ** Propagation de croyances
 \subsection{Propagation de croyances}
 \label{sec:bp}
 
@@ -418,6 +431,168 @@ multiplicateurs de Lagrange doivent être ajoutés pour
 satisfaire les contraintes de marginalisation et de
 normalisation.
 
+
+
+% * Apprentissage
+\section{Apprentissage}
+\label{sec:apprentissage}
+
+Comme le modèle présenté ci-dessus n'impose pas de modèle
+des observations $p(x_v\mid y_v)$, les valeurs $\phi_v$ ne
+sont pas considérées comme paramétrées. Ainsi,
+l'apprentissage se restreint ici aux seuls paramètres $\pi$
+et $\psi$. Toutefois, apprendre un modèle d'observation
+paramétré sera accessible en suivant le même raisonnement.
+
+À l'instar du maximum \emph{a posteriori}, l'idée de base de
+l'apprentissage consiste à trouver les valeurs des
+paramètres $\pi$, $\psi$ et des étiquettes $x$ qui
+maximisent
+\begin{equation}
+  \label{eq:16}
+  p(x, \pi, \psi\mid y) = \frac1Z e^{-E(x, \pi, \psi)},
+\end{equation}
+où l'énergie fait maintenant aussi intervenir les
+paramètres. Encore une fois, calculer $p(x, \pi, \psi\mid
+y)$ reste coûteux et nous pouvons aussi l'approcher par une
+densité $b(x, \pi, \psi)$ en minimisant l'énergie libre
+\begin{equation}
+  \label{eq:17}
+  F(b{\mathop\Vert}p)
+  = \left\<
+    \ln\frac{b(x,\pi,\psi)}{p(x,\pi,\psi\mid y)}
+    \right\>_{x,\pi,\psi}
+  = \bigl\<E(x,\pi,\psi\mid y)\bigr\>_{x,\pi,\psi}
+    - H(b) + \ln Z,
+\end{equation}
+où la moyenne $\left\<\cdot\right\>_{x,\pi,\psi}$ se fait
+selon la distribution $b(x, \pi, \psi)$.
+
+
+% ** Apprentissage par méthode du champ moyen
+\subsection{Apprentissage par méthode du champ moyen}
+\label{sec:appr-par-meth}
+
+À l'instar de la section~\ref{sec:champ-moyen}, le champ
+moyen utilise la loi produit $b(x, \pi, \psi) =
+b(\pi)\:b(\psi)\:\prod_{v\in\mathcal V} b_v[x_v]$ et, en
+utilisant directement les résultats de
+l'appendice~\ref{sec:derivation-du-champ}, nous avons
+\begin{equation}
+  b_v[x_v] \propto e^{-\bigl\< E(x,\pi,\psi\mid y)
+                       \bigr\>_{\backslash x_v}},
+  \quad
+  b(\pi) \propto e^{-\bigl\< E(x,\pi,\psi\mid y)
+                     \bigr\>_{\backslash\pi}}
+  \quad\text{et}\quad
+  b(\psi)\propto e^{-\bigl\< E(x,\pi,\psi\mid y)
+                     \bigr\>_{\backslash\psi}}.
+\end{equation}
+
+Pour faciliter le calcul des moyennes, nous pouvons réécrire
+l'énergie~(\ref{eq:3}) sous la forme
+\begin{equation}
+  \label{eq:18}
+  \begin{split}
+    E[x,\pi,\psi]
+    &= \sum_{v\in\mathcal V} \sum_{k\in\mathcal K}
+       \pi[k]\:[x_v=k]\\
+    &+ \sum_{v\in\mathcal V} \sum_{k\in\mathcal K}
+       \phi_v[k]\:[x_v = k]\\
+    &+ \frac12\sum_{v\in\mathcal V}\sum_{u\in\mathcal N_v}
+       \sum_{k\in\mathcal K}\sum_{k'\in\mathcal K}
+       \psi[k, c]\:[x_u=k]\:[x_v=c],
+  \end{split}
+\end{equation}
+où les crochets d'Iverson $[P]$ valent 1 si la proposition
+$P$ est vraie et 0 sinon.
+
+
+
+% *** Sans \emph{a priori}
+\subsubsection{Sans \emph{a priori}}
+\label{sec:sans-a-priori}
+
+Commençons sans \emph{a priori}, c'est-à-dire, en utilisant
+directement l'énergie~(\ref{eq:18}) et sans ajouter une
+composante indiquant l'\emph{a priori} des différents
+paramètres $\pi$ et $\psi$. Dans ce cas, l'espérance
+de~(\ref{eq:18}) sur les variables $x_v$, $\pi$ et $\psi$
+sauf $x_w$, en utilisant la relation $\bigl\<[x_v=k]\bigr\>
+= b_v[k]$, devient
+\begin{align}
+  \label{eq:22}
+  \bigr\<E[x,\pi,\psi]\bigr\>_{\backslash x_w}
+   &= \sum_{k\in\mathcal K} \<\pi\>[k]\:[x_w = k]
+    + \sum_{k\in\mathcal K} \phi_w[k]\:[x_w = k]\nonumber\\
+   &+ \frac12\sum_{u\in\mathcal N_w}
+       \sum_{k\in\mathcal K}\sum_{k'\in\mathcal K}
+       \<\psi\>[k, c]\:[x_u=k]\:[x_w=c] +\text{constante},\\
+  \label{eq:220}
+   &= \<\pi\>[x_w]
+     + \phi_w[x_w]
+     + \frac12\sum_{u\in\mathcal N_w}
+       \sum_{k\in\mathcal K}
+       \<\psi\>[k, x_w]\:b_u[k] +\text{constante}.
+\end{align}
+Par conséquent, en utilisant la relation~(\ref{eq:21}), en
+renommant le pixel $w$ par $v$, on retrouve l'équivalent de
+(\ref{eq:14}) avec l'apprentissage
+\begin{equation}
+  \label{eq:23}
+  -\ln b_v[c] = \<\pi\>[c] + \phi_v[c]
+  + \frac12\sum_{u\in\mathcal N_v}
+  \sum_{k\in\mathcal K} \<\psi\>[k, c]\:b_u[k] +\text{constante},
+\end{equation}
+la constante étant fixée par normalisation. Ainsi, pour la
+classification des étiquettes, on retrouve la même forme
+mais en modifiant les autres paramètres $\pi$ et $\psi$ par
+leur moyenne, d'où appellation de champ moyen.
+
+Pour déterminer $\pi$, la moyenne de l’énergie sur toutes
+les variables sauf $\pi$ est
+\begin{equation}
+  \label{eq:24}
+  \bigr\<E[x,\pi,\psi]\bigr\>_{\backslash\pi}
+  = \sum_{k\in\mathcal K} \pi[k] \sum_{v\in\mathcal V}
+  b_v[k] + \text{constante}.
+\end{equation}
+Cela ne définit malheureusement pas une distribution sur
+$\pi$ car la constante de normalisation est infinie. Il est
+cependant possible de choisir une distribution de Dirichlet
+en posant $\pi[k] = \ln x_k$. Dans ce cas, $\<\pi[k]\> =
+\<\ln x_k\> = \psi(\alpha_0) - \psi(\alpha_k)$, avec
+$\psi(\cdot)$ la fonction digamma, $\alpha_k =
+\sum_{v\in\mathcal V} b_v[k]$ et $\alpha_0 = \sum_k
+\alpha_k$.
+
+Enfin, pour la paramètre $\psi$ l'énergie moyenne sauf sur
+cette variable vaut
+\begin{equation}
+  \label{eq:25}
+  \bigr\<E[x,\pi,\psi]\bigr\>_{\backslash\psi}
+  = \frac12 \sum_{(k,c)\in\mathcal K^2} \psi[k, c]
+  \sum_{v\in\mathcal V}
+  \sum_{u\in\mathcal N_v}
+  b_v[k]\:b_u[c] + \text{constante}.
+\end{equation}
+À l'instar de $\pi$, cela ne définit pas une distribution en
+bonne et due forme. L'utilisation d'une distribution de
+Dirichlet reste possible.
+
+
+% *** Avec \emph{a priori}
+\subsubsection{Avec \emph{a priori}}
+\label{sec:avec-a-priori}
+
+
+Sans \emph{a priori}, les probabilités $b(\pi)$ suivent une
+loi tartempion. Il est donc naturel de poser comme loi
+\emph{a priori} sur $\pi$ la loi conjuguée qui est la
+distribution tartempionne.
+
+
+% * Références
 % \bibliographystyle{alpha}
 % \bibliography{articles}
 \begin{thebibliography}{GB}
@@ -426,5 +601,74 @@ normalisation.
   revolution. 2020
 \end{thebibliography}
 
+% * Dérivation du champ moyen
+\appendix
+\section{Dérivation du champ moyen}
+\label{sec:derivation-du-champ}
+
+La méthode du champ moyen approche une distribution de
+probabilité conjointe de plusieurs variables par une
+distribution produit. Nous nous limiterons à pour cette
+dérivation à seulement 2 variables discrètes $A$ et $B$ mais
+le résultat s'étend facilement à une plus grand nombre de
+variables qui peuvent aussi être continues.
+
+Soit $p(a,b) = \frac1Ze^{-E(a,b)}$ la densité jointe de $A$,
+$B$ qui n'est pas accessibles parfaitement à cause de la
+normalisation par $Z$ souvent difficile à calculer. La
+méthode propose d'approcher $p(a,b)$ par une distribution
+produit de la forme $q(a)r(b)$. Le critère pour
+l'approximation est la distance de Kullback-Leibler
+\begin{equation}
+  \label{eq:19}
+  F(qr{\mathop\Vert}p)
+  = \left\<\ln\frac{q(a)r(b)}{p(a,b)}\right\>_{a,b}
+  = \bigl\< E(a,b)\bigr\>_{a,b} + \ln Z - H(q) - H(r)
+\end{equation}
+où $\<\cdot\>_{a, b}$ indique une moyenne sur $A$ et sur $B$
+en utilisant la loi $q(a)r(b)$. La seconde inégalité
+s'obtient en développant le logarithme et où $H(q)
+= -\sum_aq(a)\:\ln q(a)$ désigne l'entropie de la loi $q(a)$
+et $H(r)$ l'équivalent pour la loi $r(b)$.
+
+En ajoutant les contraintes $\sum_a q(a) = \sum_b q(b) = 1$
+indiquant que $q(a)$ et $r(b)$ sont des lois de
+probabilités, le lagrangien associé à l'optimisation est
+\begin{equation}
+  \label{eq:20}
+  \mathcal L = \Bigl\< E(a,b)\Bigr\>_{a,b}
+  + \ln Z - H(q) - H(r)
+  + \lambda_q\:\Bigl(\textstyle\sum_a q(a) - 1\Bigr)
+  + \lambda_r\:\Bigl(\textstyle\sum_b r(b) - 1\Bigr),
+\end{equation}
+avec $\lambda_q$ et $\lambda_r$ les multiplicateurs de
+Lagrange associés aux deux contraintes de normalisation.
+
+Comme $q(a)$ est une loi discrète, pour minimiser $\mathcal
+L$, il suffit de dériver par $q(a)$ pour chaque valeur de
+$a$, donc en se représentant $q(a)$ comme une valeur d'une
+fonction mais comme une variable. Par ailleurs, on
+a $\partial \< f(a)\>_a /\partial q(a) = f(a)$ et $\partial
+H(q) /\partial q(a) = -\ln q(a) - 1$. Enfin, $\< E(a,b)
+\>_{a,b}$ égale $\bigl\< \< E(a,b) \>_b \bigr\>_a$. Ainsi,
+les points critiques de $\mathcal L$ vérifient
+\begin{equation}
+  \label{eq:21}
+  \frac{\partial\mathcal L}{\partial q(a)}
+  = \Bigl\< E(a,b)\Bigr\>_b + \ln q(a) +1+\lambda_q
+  = 0.
+\end{equation}
+Par conséquence, la loi $q$ du champ moyen vérifie
+\begin{equation}
+  q(a) =
+  \frac1Z
+  \exp\left(-\bigl\< E(a,b)
+             \bigr\>_{\backslash a}
+      \right),
+\end{equation}
+où $\< \cdot\>_{\backslash a}$ indique une moyenne sur
+toutes les variables sauf $A$. Enfin, par symétrie, les
+équations sur la loi $r(b)$ sont équivalentes \emph{mutatis
+  mutandis}.
 
 \end{document}
